@@ -110,7 +110,7 @@ class ApiService {
 
   /// Layanan Autentikasi
   Future<RegisterResponse> register(String name, String email, String password,
-      int batchId, int trainingId) async {
+      int batchId, int trainingId, String gender) async { // Added gender parameter
     final responseData = await _post(
       'register',
       {
@@ -119,6 +119,7 @@ class ApiService {
         'password': password,
         'batch_id': batchId,
         'training_id': trainingId,
+        'jenis_kelamin': gender, // Added gender to the request body
       },
       includeAuth: false, // Register tidak memerlukan token
     );

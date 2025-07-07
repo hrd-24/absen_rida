@@ -1,18 +1,18 @@
-import 'package:app_absen_rida/models/api_model.dart';
 import 'package:app_absen_rida/services/api_services.dart';
 import 'package:app_absen_rida/services/auth_repository.dart';
-import 'package:app_absen_rida/utils/constatns.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/register_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'screens/splash_screen.dart'; // Import SplashScreen
+import 'screens/history_screen.dart'; // Import HistoryScreen
+import 'screens/register_screen.dart'; // Import RegisterScreen
 import 'utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Panggil inisialisasi data lokal untuk 'id_ID' di sini
+  await initializeDateFormatting('id_ID', null);
+
   final sharedPreferences = await SharedPreferences.getInstance();
   final apiService = ApiService();
   final authRepository = AuthRepository(
@@ -20,173 +20,62 @@ void main() async {
     sharedPreferences: sharedPreferences,
   );
 
-  // Muat token saat aplikasi dimulai
-  await authRepository.loadAuthToken();
-
   runApp(
-    MyApp(
-      authRepository: authRepository,
-      sharedPreferences: sharedPreferences,
-      apiService: apiService,
-    ),
-  );
-}
-
-class MyApp extends StatefulWidget {
-  final AuthRepository authRepository;
-  final SharedPreferences sharedPreferences;
-  final ApiService apiService;
-
-  const MyApp({
-    super.key,
-    required this.authRepository,
-    required this.sharedPreferences,
-    required this.apiService,
-  });
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  User? _currentUser;
-  bool _isLoggedIn = false;
-  ThemeMode _themeMode = ThemeMode.system;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLoginStatus();
-    _loadThemeMode();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    setState(() {
-      _isLoggedIn = widget.authRepository.isLoggedIn();
-      _currentUser = widget.authRepository.getUserData();
-    });
-  }
-
-  Future<void> _loadThemeMode() async {
-    final themeString = widget.sharedPreferences.getString(
-      Constants.THEME_MODE_KEY,
-    );
-    setState(() {
-      if (themeString == 'dark') {
-        _themeMode = ThemeMode.dark;
-      } else if (themeString == 'light') {
-        _themeMode = ThemeMode.light;
-      } else {
-        _themeMode = ThemeMode.system;
-      }
-    });
-  }
-
-  void _onLoginSuccess(User user) {
-    setState(() {
-      _currentUser = user;
-      _isLoggedIn = true;
-    });
-  }
-
-  void _onLogout() {
-    // Panggil logout dari AuthRepository
-    widget.authRepository.logout();
-    setState(() {
-      _currentUser = null;
-      _isLoggedIn = false;
-    });
-  }
-
-  Future<void> _toggleTheme(bool isDarkMode) async {
-    setState(() {
-      _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    });
-    await widget.sharedPreferences.setString(
-      Constants.THEME_MODE_KEY,
-      isDarkMode ? 'dark' : 'light',
-    );
-  }
-
-  void _updateUserProfile(User updatedUser) {
-    setState(() {
-      _currentUser = updatedUser;
-    });
-    widget.authRepository.saveUserData(
-      updatedUser,
-    ); // Pastikan data di SharedPreferences juga terupdate
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+    MaterialApp(
       title: 'Aplikasi Absensi',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
-      // Menggunakan home untuk rute awal berdasarkan status login
-      home:
-          _isLoggedIn
-              ? DashboardScreen(
-                apiService: widget.apiService,
-                currentUser: _currentUser!,
-                onLogout: _onLogout,
-                toggleTheme: _toggleTheme,
-                currentThemeMode: _themeMode,
-                updateUserProfile: () {
-                  _updateUserProfile(
-                    _currentUser!,
-                  ); // Panggil update user profile
-                },
-              )
-              : LoginScreen(
-                apiService: widget.apiService,
-                authRepository: widget.authRepository,
-                onLoginSuccess: _onLoginSuccess,
-              ),
-      // Rute bernama untuk navigasi antar layar
+      // themeMode akan diatur oleh SplashScreen dan diteruskan ke layar anak
+      // di sini kita tidak bisa langsung menggunakan _themeMode karena ini bukan StatefulWidget
+
+      // Menggunakan SplashScreen sebagai home (rute awal)
+      home: SplashScreen(
+        authRepository: authRepository,
+        sharedPreferences: sharedPreferences,
+        apiService: apiService,
+      ),
+      // Named routes (opsional, karena navigasi utama akan dari SplashScreen)
       routes: {
+        // '/login': (context) => LoginScreen(
+        //   apiService: apiService,
+        //   authRepository: authRepository,
+        //   onLoginSuccess: (user) { /* Handled by SplashScreen's callback */ },
+        // ),
         '/register':
             (context) => RegisterScreen(
-              apiService: widget.apiService,
-              authRepository: widget.authRepository,
-              onRegisterSuccess:
-                  _onLoginSuccess, // Setelah register, langsung login dan update state
+              apiService: apiService,
+              authRepository: authRepository,
+              onRegisterSuccess: (user) {
+                /* Handled by SplashScreen's callback */
+              },
             ),
-        // Rute untuk dashboard, history, dan profile akan dihandle oleh Navigator.push
-        // karena mereka membutuhkan parameter (apiService, currentUser, dll.)
+        // Dashboard, History, Profile akan di-push sebagai MaterialPageRoute dari SplashScreen
+        // atau dari dalam layar itu sendiri jika navigasi bottom bar.
+        // Tidak perlu didefinisikan di sini jika hanya diakses via push/pushReplacement
       },
       onGenerateRoute: (settings) {
-        // Ini digunakan untuk rute yang membutuhkan argumen atau inisialisasi kompleks
+        // Ini akan menangani rute yang membutuhkan argumen atau inisialisasi kompleks
+        // atau rute yang tidak secara langsung didefinisikan di 'routes' map.
+        // Penting: Pastikan semua callback yang diperlukan diteruskan.
         if (settings.name == '/dashboard') {
-          return MaterialPageRoute(
-            builder:
-                (context) => DashboardScreen(
-                  apiService: widget.apiService,
-                  currentUser: _currentUser!,
-                  onLogout: _onLogout,
-                  toggleTheme: _toggleTheme,
-                  currentThemeMode: _themeMode,
-                  updateUserProfile: () {},
-                ),
-          );
+          // DashboardScreen membutuhkan currentUser, onLogout, toggleTheme, currentThemeMode, updateUserProfile
+          // Ini harusnya datang dari SplashScreen setelah login.
+          // Jika Navigator.pushNamed('/dashboard') dipanggil tanpa argumen, ini akan error.
+          // Sebaiknya navigasi ke DashboardScreen selalu menggunakan MaterialPageRoute dari SplashScreen
+          // atau dari layar yang memicu login/register.
+          return null; // Biarkan SplashScreen yang mengarahkan ke Dashboard
         } else if (settings.name == '/history') {
           return MaterialPageRoute(
-            builder: (context) => HistoryScreen(apiService: widget.apiService),
+            builder: (context) => HistoryScreen(apiService: apiService),
           );
         } else if (settings.name == '/profile') {
-          return MaterialPageRoute(
-            builder:
-                (context) => ProfileScreen(
-                  apiService: widget.apiService,
-                  currentUser: _currentUser!,
-                  onUpdateUser: _updateUserProfile, // Pass callback
-                ),
-          );
+          // ProfileScreen membutuhkan currentUser dan onUpdateUser
+          // Ini juga harusnya datang dari SplashScreen setelah login.
+          return null; // Biarkan SplashScreen yang mengarahkan ke Profile
         }
-        return null; // Biarkan rute lain ditangani oleh routes: jika ada
+        return null;
       },
-    );
-  }
+    ),
+  );
 }

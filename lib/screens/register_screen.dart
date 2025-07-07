@@ -3,7 +3,6 @@ import 'package:app_absen_rida/services/api_services.dart';
 import 'package:app_absen_rida/services/auth_repository.dart';
 import 'package:flutter/material.dart';
 
-
 // lib/screens/register_screen.dart
 class RegisterScreen extends StatefulWidget {
   final ApiService apiService;
@@ -25,11 +24,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _batchIdController = TextEditingController(text: '1'); // Placeholder
-  final TextEditingController _trainingIdController = TextEditingController(text: '1'); // Placeholder
+  final TextEditingController _batchIdController = TextEditingController(
+    text: '1',
+  ); // Placeholder
+  final TextEditingController _trainingIdController = TextEditingController(
+    text: '1',
+  ); // Placeholder
+  String? _selectedGender; // New field for gender
   bool _isLoading = false;
 
   Future<void> _register() async {
+    // Validasi sederhana untuk jenis kelamin
+    if (_selectedGender == null || _selectedGender!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Jenis kelamin wajib dipilih.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -41,9 +56,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _passwordController.text,
         int.parse(_batchIdController.text),
         int.parse(_trainingIdController.text),
+        _selectedGender!, // Pass the selected gender
       );
       if (user != null) {
-        widget.onRegisterSuccess(user); // Panggil callback untuk update state di MyApp
+        widget.onRegisterSuccess(
+          user,
+        ); // Panggil callback untuk update state di MyApp
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -51,7 +69,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pushReplacementNamed('/dashboard'); // Langsung ke dashboard
+          Navigator.of(
+            context,
+          ).pushReplacementNamed('/dashboard'); // Langsung ke dashboard
         }
       }
     } on ApiException catch (e) {
@@ -63,10 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           });
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -88,25 +105,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Daftar Akun Baru'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Daftar Akun Baru'), centerTitle: true),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Card(
             elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Daftar',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  Text('Daftar', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 20),
                   TextField(
                     controller: _nameController,
@@ -134,6 +147,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: true,
                   ),
                   const SizedBox(height: 15),
+                  // Dropdown for Jenis Kelamin
+                  DropdownButtonFormField<String>(
+                    value: _selectedGender,
+                    decoration: const InputDecoration(
+                      labelText: 'Jenis Kelamin',
+                      prefixIcon: Icon(Icons.people),
+                      border: OutlineInputBorder(),
+                    ),
+                    hint: const Text('Pilih Jenis Kelamin'),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedGender = newValue;
+                      });
+                    },
+                    items:
+                        <String>[
+                          'L',
+                          'P',
+                        ].map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                  ),
+                  const SizedBox(height: 15),
                   TextField(
                     controller: _batchIdController,
                     decoration: const InputDecoration(
@@ -155,9 +194,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
-                          onPressed: _register,
-                          child: const Text('Daftar'),
-                        ),
+                        onPressed: _register,
+                        child: const Text('Daftar'),
+                      ),
                   const SizedBox(height: 20),
                   TextButton(
                     onPressed: () {

@@ -3,7 +3,6 @@ import 'package:app_absen_rida/services/api_services.dart';
 import 'package:app_absen_rida/utils/constatns.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 // lib/auth_repository.dart
 class AuthRepository {
   final ApiService apiService;
@@ -28,9 +27,9 @@ class AuthRepository {
   }
 
   /// Melakukan proses register dan menyimpan token serta data pengguna
-  Future<User?> register(String name, String email, String password, int batchId, int trainingId) async {
+  Future<User?> register(String name, String email, String password, int batchId, int trainingId, String gender) async {
     try {
-      final response = await apiService.register(name, email, password, batchId, trainingId);
+      final response = await apiService.register(name, email, password, batchId, trainingId, gender);
       if (response.data != null) {
         apiService.setAuthToken(response.data!.token); // Simpan token di ApiService
         await sharedPreferences.setString(Constants.AUTH_TOKEN_KEY, response.data!.token); // Simpan token di SharedPreferences

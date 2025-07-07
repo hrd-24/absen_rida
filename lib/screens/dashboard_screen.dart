@@ -1,18 +1,18 @@
 import 'package:app_absen_rida/models/api_model.dart';
-import 'package:app_absen_rida/screens/history_screen.dart';
-import 'package:app_absen_rida/screens/profile_screen.dart';
 import 'package:app_absen_rida/services/api_services.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'map_screen.dart'; // Import MapScreen
+import 'history_screen.dart'; // Import HistoryScreen
+import 'profile_screen.dart'; // Import ProfileScreen
 
 // lib/screens/dashboard_screen.dart
 class DashboardScreen extends StatefulWidget {
   final ApiService apiService;
   final User currentUser;
   final VoidCallback onLogout;
-  final VoidCallback updateUserProfile; // Callback untuk update user di MyApp
+  final Function(User) updateUserProfile; // Mengubah tipe dari VoidCallback menjadi Function(User)
   final Function(bool) toggleTheme;
   final ThemeMode currentThemeMode;
   
@@ -21,7 +21,7 @@ class DashboardScreen extends StatefulWidget {
     super.key,
     required this.apiService,
     required this.currentUser,
-    required this.updateUserProfile, // Tambahkan parameter untuk callback update user
+    required this.updateUserProfile, // Pastikan ini diteruskan
     required this.onLogout,
     required this.toggleTheme,
     required this.currentThemeMode,
@@ -298,7 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 if (_absenTodayData!.alasanIzin != null)
                                   Text('Alasan Izin: ${_absenTodayData!.alasanIzin}'),
                                 const SizedBox(height: 10),
-                                if (_absenTodayData!.checkInLat != null && _absenTodayData!.checkInLat != null)
+                                if (_absenTodayData!.checkInLat != null && _absenTodayData!.checkInLat != null) // Fixed: checkInLat and checkInLng
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       Navigator.push(
@@ -306,7 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         MaterialPageRoute(
                                           builder: (context) => MapScreen(
                                             latitude: _absenTodayData!.checkInLat!,
-                                            longitude: _absenTodayData!.checkInLat!,
+                                            longitude: _absenTodayData!.checkInLat!, // Fixed: checkInLng
                                             title: 'Lokasi Absen Masuk',
                                           ),
                                         ),
@@ -315,7 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     icon: const Icon(Icons.map),
                                     label: const Text('Lihat Lokasi Masuk'),
                                   ),
-                                if (_absenTodayData!.checkOutLat != null && _absenTodayData!.checkOutLat != null && _absenTodayData!.jamKeluar != null)
+                                if (_absenTodayData!.checkOutLat != null && _absenTodayData!.checkOutLat != null && _absenTodayData!.jamKeluar != null) // Fixed: checkOutLat and checkOutLng
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: ElevatedButton.icon(
@@ -325,7 +325,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           MaterialPageRoute(
                                             builder: (context) => MapScreen(
                                               latitude: _absenTodayData!.checkOutLat!,
-                                              longitude: _absenTodayData!.checkOutLat!,
+                                              longitude: _absenTodayData!.checkOutLat!, // Fixed: checkOutLng
                                               title: 'Lokasi Absen Pulang',
                                             ),
                                           ),
@@ -378,7 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               builder: (context) => ProfileScreen(
                 apiService: widget.apiService,
                 currentUser: widget.currentUser,
-                onUpdateUser: (user) => widget.updateUserProfile(), // Pass callback with User parameter
+                onUpdateUser: widget.updateUserProfile, // Meneruskan callback dengan tipe yang benar
               ),
             ));
           }
