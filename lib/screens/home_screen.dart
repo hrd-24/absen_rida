@@ -1,4 +1,5 @@
 // lib/screens/dashboard_screen.dart
+import 'package:app_absen_rida/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:app_absen_rida/models/api_model.dart';
@@ -28,22 +29,69 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(currentThemeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
+          onPressed: () => toggleTheme(currentThemeMode == ThemeMode.light),
+        ),
         title: const Text('Dashboard Absensi'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(currentThemeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () => toggleTheme(currentThemeMode == ThemeMode.light),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              onLogout();
-              Navigator.of(context).pushReplacementNamed('/');
-            },
-          ),
+        actions: [PopupMenuButton<String>(
+  onSelected: (value) {
+    if (value == 'back') {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } else if (value == 'history') {
+      Navigator.of(context).pushNamed('/history');
+   } else if (value == 'profile') {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ProfileScreen(
+        apiService: apiService,
+        currentUser: currentUser,
+        onUpdateUser: updateUserProfile,
+      ),
+    ),
+  );
+}
+
+  },
+  itemBuilder: (context) => [
+    const PopupMenuItem(
+      value: 'back',
+      child: Row(
+        children: [
+          Icon(Icons.logout, size: 20), // ganti ikon jika perlu
+          SizedBox(width: 8),
+          Text('Logout'),
         ],
       ),
+    ),
+    const PopupMenuItem(
+      value: 'history',
+      child: Row(
+        children: [
+          Icon(Icons.history, size: 20),
+          SizedBox(width: 8),
+          Text('History Absensi'),
+        ],
+      ),
+    ),
+    const PopupMenuItem(
+      value: 'profile',
+      child: Row(
+        children: [
+          Icon(Icons.person, size: 20),
+          SizedBox(width: 8),
+          Text('Profile'),
+        ],
+      ),
+    ),
+  ],
+),
+
+        ],
+      ),
+      
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

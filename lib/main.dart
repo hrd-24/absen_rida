@@ -93,13 +93,12 @@ class _MyAppState extends State<MyApp> {
                   (_) => RegisterScreen(
                     apiService: widget.apiService,
                     authRepository: widget.authRepository,
-                   onRegisterSuccess: (user) {
-  setState(() => _currentUser = user);
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Navigator.pushReplacementNamed(context, '/login');
-  });
-},
-
+                    onRegisterSuccess: (user) {
+                      setState(() => _currentUser = user);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Navigator.pushReplacementNamed(context, '/login');
+                      });
+                    },
                   ),
             );
           case '/home':

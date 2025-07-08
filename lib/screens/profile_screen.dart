@@ -31,7 +31,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _userProfile = widget.currentUser; // Inisialisasi dengan currentUser dari widget
+    _userProfile =
+        widget.currentUser; // Inisialisasi dengan currentUser dari widget
     _nameController.text = _userProfile?.name ?? '';
     _fetchProfile(); // Tetap panggil API untuk data terbaru
   }
@@ -50,10 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
         );
       }
       setState(() {
@@ -84,21 +82,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final response = await widget.apiService.editProfile(_nameController.text);
-      if (response.data != null) {
-        widget.onUpdateUser(response.data!); // Panggil callback untuk update user di MyApp
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profil berhasil diperbarui!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-        setState(() {
-          _isEditing = false;
-        });
-      }
+      final response = await widget.apiService.editProfile(
+        _nameController.text,
+      );
+     if (response.data != null) {
+  widget.onUpdateUser(response.data!); // Update user global (MyApp)
+  
+  setState(() {
+    _userProfile = response.data!; // <- TAMBAHKAN INI AGAR UI LANGSUNG UPDATE
+    _nameController.text = _userProfile!.name; // Sync controller juga
+  });
+
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Profil berhasil diperbarui!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+}
+
     } on ApiException catch (e) {
       if (mounted) {
         String errorMessage = e.message;
@@ -108,10 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -130,6 +131,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showEditNameDialog() {
+    final TextEditingController dialogController = TextEditingController(
+      text: _userProfile?.name ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Edit Nama'),
+          content: TextField(
+            controller: dialogController,
+            decoration: const InputDecoration(
+              labelText: 'Nama Baru',
+              prefixIcon: Icon(Icons.person),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop(); // Tutup dialog tanpa simpan
+              },
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newName = dialogController.text.trim();
+                final currentName = _userProfile?.name?.trim() ?? '';
+
+                if (newName.isEmpty || newName == currentName) {
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Nama tidak berubah atau kosong.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.of(ctx).pop(); // Tutup dialog
+                _nameController.text = newName; // Update controller utama
+                _updateProfile(); // Simpan ke server
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,127 +190,146 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profil Pengguna'),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(_isEditing ? Icons.save : Icons.edit),
-            onPressed: () {
-              if (_isEditing) {
-                _updateProfile();
-              } else {
-                setState(() {
-                  _isEditing = true;
-                });
-              }
-            },
-          ),
+          // IconButton(
+          //   icon: Icon(_isEditing ? Icons.save : Icons.edit),
+          //   onPressed: () {
+          //     if (_isEditing) {
+          //       _updateProfile();
+          //     } else {
+          //       setState(() {
+          //         _isEditing = true;
+          //       });
+          //     }
+          //   },
+          // ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _userProfile == null
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _userProfile == null
               ? const Center(child: Text('Gagal memuat data profil.'))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Detail Profil',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 15),
-                              TextField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Nama',
-                                  prefixIcon: Icon(Icons.person),
-                                ),
-                                enabled: _isEditing,
-                              ),
-                              const SizedBox(height: 15),
-                              TextField(
-                                controller: TextEditingController(text: _userProfile!.email),
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                  prefixIcon: Icon(Icons.email),
-                                ),
-                                readOnly: true, // Email biasanya tidak bisa diedit
-                              ),
-                              const SizedBox(height: 15),
-                              Text('Dibuat pada: ${_userProfile!.createdAt ?? '-'}'),
-                              Text('Diperbarui pada: ${_userProfile!.updatedAt ?? '-'}'),
-                            ],
-                          ),
-                        ),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 20),
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            widget.apiService.setAuthToken(null); // Hapus token dari ApiService
-                            // Hapus token dari SharedPreferences juga
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.remove('authToken'); // Gunakan kunci yang sama dengan yang disimpan
-
-                            // Kembali ke halaman login dan hapus semua rute sebelumnya
-                            if (mounted) {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (context) => LoginScreen(
-                                  apiService: widget.apiService,
-                                  authRepository: AuthRepository(
-                                    apiService: widget.apiService,
-                                    sharedPreferences: prefs, // Teruskan instance prefs yang sama
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Detail Profil',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 15),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: TextEditingController(
+                                      text: _userProfile?.name ?? '',
+                                    ),
+                                    readOnly: true,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Nama',
+                                      prefixIcon: Icon(Icons.person),
+                                    ),
                                   ),
-                                  onLoginSuccess: (user) { /* do nothing, main will handle */ },
-                                )),
-                                (Route<dynamic> route) => false,
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.logout),
-                          label: const Text('Logout'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  tooltip: 'Edit Nama',
+                                  onPressed: () {
+                                    _showEditNameDialog();
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 15),
+                            TextField(
+                              controller: TextEditingController(
+                                text: _userProfile!.email,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                                prefixIcon: Icon(Icons.email),
+                              ),
+                              readOnly:
+                                  true, // Email biasanya tidak bisa diedit
+                            ),
+                            const SizedBox(height: 15),
+                            Text(
+                              'Dibuat pada: ${_userProfile!.createdAt ?? '-'}',
+                            ),
+                            Text(
+                              'Diperbarui pada: ${_userProfile!.updatedAt ?? '-'}',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          widget.apiService.setAuthToken(
+                            null,
+                          ); // Hapus token dari ApiService
+                          // Hapus token dari SharedPreferences juga
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.remove(
+                            'authToken',
+                          ); // Gunakan kunci yang sama dengan yang disimpan
+
+                          // Kembali ke halaman login dan hapus semua rute sebelumnya
+                          if (mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => LoginScreen(
+                                      apiService: widget.apiService,
+                                      authRepository: AuthRepository(
+                                        apiService: widget.apiService,
+                                        sharedPreferences:
+                                            prefs, // Teruskan instance prefs yang sama
+                                      ),
+                                      onLoginSuccess: (user) {
+                                        /* do nothing, main will handle */
+                                      },
+                                    ),
+                              ),
+                              (Route<dynamic> route) => false,
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Logout'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2, // Profile
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushReplacementNamed('/dashboard');
-          } else if (index == 1) {
-            Navigator.of(context).pushReplacementNamed('/history');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Riwayat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-        ],
-      ),
+              ),
     );
   }
 }
