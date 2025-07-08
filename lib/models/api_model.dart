@@ -127,8 +127,9 @@ class User {
       emailVerifiedAt: json['email_verified_at'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
-      batchId: json['batch_id'] as int?,
-      trainingId: json['training_id'] as int?,
+      // Corrected parsing for batchId and trainingId
+      batchId: json['batch_id'] != null ? int.tryParse(json['batch_id'].toString()) : null,
+      trainingId: json['training_id'] != null ? int.tryParse(json['training_id'].toString()) : null,
     );
   }
 

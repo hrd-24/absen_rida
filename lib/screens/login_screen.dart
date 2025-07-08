@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         widget.onLoginSuccess(user); // Panggil callback untuk update state di MyApp
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/dashboard');
+Navigator.pushReplacementNamed(context, '/home');
         }
       }
     } on ApiException catch (e) {

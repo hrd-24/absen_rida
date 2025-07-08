@@ -22,7 +22,7 @@ class AuthRepository {
       }
       return null;
     } catch (e) {
-      rethrow; // Melemparkan kembali exception untuk ditangani di UI
+      rethrow;
     }
   }
 
@@ -31,9 +31,9 @@ class AuthRepository {
     try {
       final response = await apiService.register(name, email, password, batchId, trainingId, gender);
       if (response.data != null) {
-        apiService.setAuthToken(response.data!.token); // Simpan token di ApiService
-        await sharedPreferences.setString(Constants.AUTH_TOKEN_KEY, response.data!.token); // Simpan token di SharedPreferences
-        await saveUserData(response.data!.user); // Simpan data user di SharedPreferences
+        apiService.setAuthToken(response.data!.token);
+        await sharedPreferences.setString(Constants.AUTH_TOKEN_KEY, response.data!.token);
+        await saveUserData(response.data!.user);
         return response.data!.user;
       }
       return null;
@@ -44,12 +44,11 @@ class AuthRepository {
 
   /// Melakukan logout dengan menghapus token dan data pengguna
   Future<void> logout() async {
-    apiService.setAuthToken(null); // Hapus token dari ApiService
-    await sharedPreferences.remove(Constants.AUTH_TOKEN_KEY); // Hapus token dari SharedPreferences
-    await deleteUserData(); // Hapus data user dari SharedPreferences
+    apiService.setAuthToken(null);
+    await sharedPreferences.remove(Constants.AUTH_TOKEN_KEY);
+    await deleteUserData();
   }
 
-  /// Mengambil token dari ApiService
   String? getToken() {
     return apiService.authToken;
   }
@@ -59,7 +58,6 @@ class AuthRepository {
     await sharedPreferences.setInt(Constants.USER_ID_KEY, user.id);
     await sharedPreferences.setString(Constants.USER_NAME_KEY, user.name);
     await sharedPreferences.setString(Constants.USER_EMAIL_KEY, user.email);
-    // Simpan juga batchId dan trainingId jika ada dan relevan untuk ditampilkan di UI tanpa API call
     if (user.batchId != null) {
       await sharedPreferences.setInt('userBatchId', user.batchId!);
     }
@@ -76,7 +74,6 @@ class AuthRepository {
     final batchId = sharedPreferences.getInt('userBatchId');
     final trainingId = sharedPreferences.getInt('userTrainingId');
 
-
     if (id != null && name != null && email != null) {
       return User(
         id: id,
@@ -84,14 +81,13 @@ class AuthRepository {
         email: email,
         batchId: batchId,
         trainingId: trainingId,
-        createdAt: '', // Placeholder, bisa diambil dari API jika dibutuhkan
-        updatedAt: '', // Placeholder, bisa diambil dari API jika dibutuhkan
+        createdAt: '',
+        updatedAt: '',
       );
     }
     return null;
   }
 
-  /// Menghapus data pengguna dari SharedPreferences
   Future<void> deleteUserData() async {
     await sharedPreferences.remove(Constants.USER_ID_KEY);
     await sharedPreferences.remove(Constants.USER_NAME_KEY);
@@ -100,16 +96,17 @@ class AuthRepository {
     await sharedPreferences.remove('userTrainingId');
   }
 
-  /// Memeriksa apakah pengguna sudah login (memiliki token di ApiService)
   bool isLoggedIn() {
     return apiService.authToken != null;
   }
 
-  /// Memuat token dari SharedPreferences ke ApiService saat startup
   Future<void> loadAuthToken() async {
     final storedToken = sharedPreferences.getString(Constants.AUTH_TOKEN_KEY);
     if (storedToken != null) {
       apiService.setAuthToken(storedToken);
     }
   }
+
+  /// ✅ Getter tambahan untuk mengakses user dengan lebih mudah
+  User? get currentUser => getUserData();
 }

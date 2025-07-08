@@ -65,13 +65,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Registrasi berhasil! Anda telah login.'),
+              content: Text('Registrasi berhasil'),
               backgroundColor: Colors.green,
             ),
           );
           Navigator.of(
             context,
-          ).pushReplacementNamed('/dashboard'); // Langsung ke dashboard
+          ).pushReplacementNamed('/login'); // Langsung ke dashboard
         }
       }
     } on ApiException catch (e) {
